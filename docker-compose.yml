@@ -1,0 +1,104 @@
+version: "3.8"
+
+networks:
+  bda_net:
+    driver: bridge
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hive_metastore_db:
+  mongo_data:
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    environment:
+      - CLUSTER_NAME=bda_cluster
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - ./:/workspace
+    ports:
+      - "9870:9870"
+    networks:
+      - bda_net
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    ports:
+      - "9864:9864"
+    networks:
+      - bda_net
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+    env_file:
+      - ./hadoop.env
+    ports:
+      - "8088:8088"
+    networks:
+      - bda_net
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bda_net
+
+  hive-metastore-db:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-db
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+    networks:
+      - bda_net
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    restart: always
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-db:5432/metastore"
+      SERVICE_PRECONDITION: "hive-metastore-db:5432 namenode:9000 datanode:9864"
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - ./:/workspace
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    networks:
+      - bda_net
+
+  mongodb_lab:
+    image: mongo:6.0
+    container_name: mongodb_lab
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./:/workspace
+    networks:
+      - bda_net
