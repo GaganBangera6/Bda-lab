@@ -1,0 +1,26 @@
+{
+  "name": "Big Data Lab Environment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableOnDataRoot": true
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "8",
+      "jdkDistro": "tem",
+      "installMaven": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "ms-azuretools.vscode-docker",
+        "mongodb.mongodb-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "docker compose up -d",
+  "remoteUser": "vscode"
+}
